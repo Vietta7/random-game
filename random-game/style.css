@@ -1,0 +1,49 @@
+body {
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f0f0f0;
+}
+
+canvas {
+    border: 2px solid #333;
+    box-shadow: 0 0 0.625rem #000000;
+    background-image: url(./img/background.png); 
+}
+
+.footer {
+    background-color: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    padding: 1.25rem 0;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    z-index: 1;
+}
+  
+.footer-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 75rem;
+    margin: 0 auto;
+    padding: 0 1.25rem;
+}
+  
+.footer-logo img, .rs-logo img {
+    height: 2.5rem;
+    width: auto;
+}
+  
+.copy {
+    font-size: 1rem;
+    letter-spacing: 0.09rem;
+}
+  
+.gh-image, .rs-image {
+    filter: invert(1);
+}
