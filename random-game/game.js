@@ -2,8 +2,26 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 let gameStarted = false;
 
+const jumpSound = new Audio('jump.mp3');
+
+const backgroundMusic = new Audio('main-theme.mp3');
+backgroundMusic.loop = true; 
+
 const pusheenImage = new Image();
 pusheenImage.src = './img/modal-img.png';
+
+const soundOffImage = new Image();
+soundOffImage.src = './img/sound-off.png';
+
+const soundOnImage = new Image();
+soundOnImage.src = './img/sound-on.png';
+
+let soundEnabled = true;
+
+const soundButtonSize = 50;
+const soundButtonX = canvas.width - soundButtonSize - 20;
+const soundButtonY = 20;
+
 
 // Начальные параметры котика
 let catY; // Высота котика
@@ -28,8 +46,7 @@ icecreamTop.src = './img/icecream-top.png';
 const icecreamBottom = new Image();
 icecreamBottom.src = './img/icecream-bottom.png';
 
-
-// Модальное окно
+// Модальное окно 'Start game
 function showModal() {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -48,12 +65,45 @@ function showModal() {
     };
 }
 
+// Звук
+function drawSoundButton() {
+    if (soundEnabled) {
+        ctx.drawImage(soundOffImage, soundButtonX, soundButtonY, soundButtonSize, soundButtonSize);
+    } 
+    else {
+        ctx.drawImage(soundOnImage, soundButtonX, soundButtonY, soundButtonSize, soundButtonSize);
+    }
+}
+
+canvas.addEventListener('click', function(event) {
+    const mouseX = event.clientX - canvas.getBoundingClientRect().left;
+    const mouseY = event.clientY - canvas.getBoundingClientRect().top;
+
+    if (mouseX >= soundButtonX && mouseX <= soundButtonX + soundButtonSize &&
+        mouseY >= soundButtonY && mouseY <= soundButtonY + soundButtonSize) {
+        toggleSound(); 
+    }
+});
+
+function toggleSound() {
+    if (soundEnabled) {
+        backgroundMusic.pause();
+        jumpSound.muted = true;
+        soundEnabled = false;
+    } else {
+        backgroundMusic.play();
+        jumpSound.muted = false;
+        soundEnabled = true;
+    }
+}
+
 document.addEventListener('keydown', function(event) {
     if (event.code === 'Enter' && !gameStarted) {
         gameStarted = true;
         startGame(); 
     } else if (event.code === 'Space' && gameStarted) {
         catVelocity = jump; 
+        if (soundEnabled) jumpSound.play(); 
     }
 });
 
@@ -64,7 +114,38 @@ function startGame() {
     obstacles.length = 0; // Очищаем массив препятствий
     score = 0; // Сбрасываем счет
 
-    
+    if (soundEnabled) backgroundMusic.play(); 
+
+    gameLoop();
 }
 
-showModal() 
+
+// Рисуем котика и мороженые
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height); 
+
+    ctx.drawImage(pusheen, 50, catY, 100, 70); // Котик
+
+    // Препятствия
+    obstacles.forEach(obstacle => {
+        ctx.drawImage(icecreamTop, obstacle.x, obstacle.y - obstacleHeight, obstacleWidth, obstacleHeight); // Верхнее мороженое
+        ctx.drawImage(icecreamBottom, obstacle.x, obstacle.y + pipeGap, obstacleWidth, obstacleHeight); // Нижнее мороженое
+    });
+
+    // Счет
+    ctx.fillStyle = 'white';
+    ctx.font = '36px "Indie Flower", cursive';
+    ctx.fillText(`score: ${score}`, 80, 30);
+}
+
+
+showModal();
+
+// Игра запистится после загрузки котика
+pusheen.onload = function() {
+    console.log('Pusheen загружен'); 
+};
+
+pusheen.onerror = function() {
+    console.error('Не удалось загрузить изображение Pusheen'); 
+};
