@@ -149,3 +149,90 @@ pusheen.onload = function() {
 pusheen.onerror = function() {
     console.error('Не удалось загрузить изображение Pusheen'); 
 };
+
+
+// Создаем препятствия
+function createObstacle() {
+    const obstacleX = canvas.width; 
+    const obstacleY = Math.random() * (canvas.height - obstacleHeight - pipeGap) + 50;
+    obstacles.push({ x: obstacleX, y: obstacleY }); 
+}
+
+// Проверяем столкнулись ли котик и мороженое
+function checkCollision() {
+    const pusheenPaddingX = 20; 
+    const pusheenPaddingY = 5; 
+    const obstaclePadding = 5; 
+
+    for (let obstacle of obstacles) {
+        // Проверяем столкновение с верхним мороженым
+        if (
+            50 + 100 - pusheenPaddingX > obstacle.x + obstaclePadding &&  
+            50 + pusheenPaddingX < obstacle.x + obstacleWidth - obstaclePadding &&  
+            catY + pusheenPaddingY < obstacle.y - obstaclePadding 
+        ) {
+            return true; 
+        }
+
+        // Проверяем столкновение с нижним мороженым
+        if (
+            50 + 100 - pusheenPaddingX > obstacle.x + obstaclePadding &&  
+            50 + pusheenPaddingX < obstacle.x + obstacleWidth - obstaclePadding &&  
+            catY + 70 - pusheenPaddingY > obstacle.y + pipeGap + obstaclePadding 
+        ) {
+            return true; 
+        }
+    }
+    return false; // Нет столкновения
+}
+
+
+function update() {
+    catVelocity += gravity; 
+    catY += catVelocity; 
+
+    if (catY + 80 > canvas.height) {
+        catY = canvas.height - 80; 
+        catVelocity = 0; 
+    }
+
+    if (catY < 0) {
+        catY = 0; 
+        catVelocity = 0; 
+    }
+
+    obstacles.forEach(obstacle => {
+        obstacle.x -= 3; 
+        if (obstacle.x + obstacleWidth < 0) {
+            obstacles.shift(); 
+            score++; 
+        }
+    });
+
+    if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < canvas.width - 200) {
+        createObstacle(); 
+    }
+
+    if (checkCollision()) {
+        alert(`Игра окончена! Ваши очки: ${score}, Прыжки: ${jumpCount}`); 
+        resetGame(); 
+    }
+}
+
+// Сбрасываем игру
+function resetGame() {
+    catY = canvas.height / 2; 
+    catVelocity = 0; 
+    obstacles.length = 0; 
+    score = 0; 
+}
+
+
+// Основной игровой цикл
+
+function gameLoop() {
+    update(); 
+    draw(); 
+    drawSoundButton(); 
+    requestAnimationFrame(gameLoop); 
+}
