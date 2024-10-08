@@ -22,7 +22,6 @@ const soundButtonSize = 50;
 const soundButtonX = canvas.width - soundButtonSize - 20;
 const soundButtonY = 20;
 
-
 // Начальные параметры котика
 let catY; // Высота котика
 let catVelocity = 0; // Скорость движения
@@ -65,15 +64,6 @@ function showModal() {
     };
 }
 
-// Звук
-function drawSoundButton() {
-    if (soundEnabled) {
-        ctx.drawImage(soundOffImage, soundButtonX, soundButtonY, soundButtonSize, soundButtonSize);
-    } 
-    else {
-        ctx.drawImage(soundOnImage, soundButtonX, soundButtonY, soundButtonSize, soundButtonSize);
-    }
-}
 
 canvas.addEventListener('click', function(event) {
     const mouseX = event.clientX - canvas.getBoundingClientRect().left;
@@ -95,6 +85,70 @@ function toggleSound() {
         jumpSound.muted = false;
         soundEnabled = true;
     }
+}
+
+// для получения данных о последних играх из localStorage
+function getPreviousGames() {
+    let savedGames = localStorage.getItem('gameScores'); 
+    if (savedGames) {
+        return JSON.parse(savedGames);
+    } else {
+        return [];
+    }
+}
+// Сохряем новый результат
+function saveGameScore(score) {
+    let previousGames = getPreviousGames(); 
+
+    previousGames.push({ score: score, date: new Date().toLocaleString() }); 
+
+    if (previousGames.length > 10) {
+        previousGames.shift(); 
+    }
+
+    localStorage.setItem('gameScores', JSON.stringify(previousGames)); 
+}
+
+// лучший результат
+function getBestScore() {
+    let previousGames = getPreviousGames(); 
+
+    if (previousGames.length === 0) {
+        return 0; 
+    }
+
+    let bestGame = previousGames[0]; 
+
+    for (let i = 1; i < previousGames.length; i++) {
+        if (previousGames[i].score > bestGame.score) {
+            bestGame = previousGames[i]; 
+        }
+    }
+
+    return bestGame.score; 
+}
+
+function drawBestScore() {
+    const bestScore = getBestScore();
+
+    ctx.fillStyle = 'white';
+    ctx.font = '24px "Indie Flower", cursive';
+    ctx.fillText(`best score: ${bestScore}`, 80, 70); 
+}
+
+// таблица с результатами
+function drawScoreTable() {
+    const previousGames = getPreviousGames();
+
+    ctx.fillStyle = 'white';
+    ctx.font = '20px "Indie Flower", cursive';
+    ctx.textAlign = 'left';
+
+    ctx.fillText('Previous Games:', 10, 40);
+
+    previousGames.forEach((game, index) => {
+        ctx.fillText(`${index + 1}. Score: ${game.score}, ${game.date}`, 20, 70 + index * 30);
+    });
 }
 
 document.addEventListener('keydown', function(event) {
@@ -119,38 +173,6 @@ function startGame() {
     gameLoop();
 }
 
-
-// Рисуем котика и мороженые
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height); 
-
-    ctx.drawImage(pusheen, 50, catY, 100, 70); // Котик
-
-    // Препятствия
-    obstacles.forEach(obstacle => {
-        ctx.drawImage(icecreamTop, obstacle.x, obstacle.y - obstacleHeight, obstacleWidth, obstacleHeight); // Верхнее мороженое
-        ctx.drawImage(icecreamBottom, obstacle.x, obstacle.y + pipeGap, obstacleWidth, obstacleHeight); // Нижнее мороженое
-    });
-
-    // Счет
-    ctx.fillStyle = 'white';
-    ctx.font = '36px "Indie Flower", cursive';
-    ctx.fillText(`score: ${score}`, 80, 30);
-}
-
-
-showModal();
-
-// Игра запистится после загрузки котика
-pusheen.onload = function() {
-    console.log('Pusheen загружен'); 
-};
-
-pusheen.onerror = function() {
-    console.error('Не удалось загрузить изображение Pusheen'); 
-};
-
-
 // Создаем препятствия
 function createObstacle() {
     const obstacleX = canvas.width; 
@@ -171,6 +193,7 @@ function checkCollision() {
             50 + pusheenPaddingX < obstacle.x + obstacleWidth - obstaclePadding &&  
             catY + pusheenPaddingY < obstacle.y - obstaclePadding 
         ) {
+            showGameOverModal();
             return true; 
         }
 
@@ -180,10 +203,49 @@ function checkCollision() {
             50 + pusheenPaddingX < obstacle.x + obstacleWidth - obstaclePadding &&  
             catY + 70 - pusheenPaddingY > obstacle.y + pipeGap + obstaclePadding 
         ) {
+            showGameOverModal(); 
             return true; 
         }
     }
-    return false; // Нет столкновения
+    return false; 
+}
+
+
+const gameOverImage = new Image();
+gameOverImage.src = './img/game-over.png'; 
+
+let gameOverImageLoaded = false;
+
+gameOverImage.onload = function() {
+    gameOverImageLoaded = true;
+};
+
+// Модальное окно "Game Over"
+function showGameOverModal() {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = 'white';
+    ctx.font = '36px "Indie Flower", cursive';
+    ctx.textAlign = 'center';
+
+    ctx.fillText('Game Over!', canvas.width / 2, canvas.height / 2 - 80);
+    ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 - 20);
+    ctx.fillText("Press ENTER to restart", canvas.width / 2, canvas.height / 2 + 40);
+    
+    if (gameOverImageLoaded) {
+        const imageWidth = 250; 
+        const imageHeight = 250; 
+        ctx.drawImage(gameOverImage, (canvas.width - imageWidth) / 2, canvas.height / 2 + 60, imageWidth, imageHeight); 
+    }
+
+    // Сохраняем текущий результат
+    saveGameScore(score);
+
+    // Отображаем таблицу с результатами
+    drawScoreTable();
+
+    gameStarted = false; 
 }
 
 
@@ -227,12 +289,53 @@ function resetGame() {
     score = 0; 
 }
 
+// Рисуем котика и мороженые
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height); 
+
+    ctx.drawImage(pusheen, 50, catY, 100, 70); // Котик
+
+    // Препятствия
+    obstacles.forEach(obstacle => {
+        ctx.drawImage(icecreamTop, obstacle.x, obstacle.y - obstacleHeight, obstacleWidth, obstacleHeight); // Верхнее мороженое
+        ctx.drawImage(icecreamBottom, obstacle.x, obstacle.y + pipeGap, obstacleWidth, obstacleHeight); // Нижнее мороженое
+    });
+
+    // Счет
+    ctx.fillStyle = 'white';
+    ctx.font = '36px "Indie Flower", cursive';
+    ctx.fillText(`score: ${score}`, 80, 30);
+}
+
+
+// Звук
+function drawSoundButton() {
+    if (soundEnabled) {
+        ctx.drawImage(soundOffImage, soundButtonX, soundButtonY, soundButtonSize, soundButtonSize);
+    } 
+    else {
+        ctx.drawImage(soundOnImage, soundButtonX, soundButtonY, soundButtonSize, soundButtonSize);
+    }
+}
+
 
 // Основной игровой цикл
-
 function gameLoop() {
     update(); 
     draw(); 
     drawSoundButton(); 
+    drawBestScore(); 
     requestAnimationFrame(gameLoop); 
 }
+
+
+showModal();
+
+// Игра запистится после загрузки котика
+pusheen.onload = function() {
+    console.log('Pusheen загружен'); 
+};
+
+pusheen.onerror = function() {
+    console.error('Не удалось загрузить изображение Pusheen'); 
+};
